@@ -29,10 +29,10 @@ app.post('/signup', async(req, res) => {
         // res.status(500).json({ error: error });
         if (error.code === 11000) {
             if (error.keyPattern.email) {
-                res.status(400).json({ message: 'Email already exists' });
+                res.status(400).json({ value: 'email', message: 'Email already exists' });
             }
             else {
-                res.status(400).json({ message: 'Username already exists' });
+                res.status(400).json({ value: 'username', message: 'Username already exists' });
             }
         }
     }

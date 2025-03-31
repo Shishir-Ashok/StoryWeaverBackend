@@ -2,15 +2,17 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const brcypt = require('bcryptjs');
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const User = require('./models/user');
-const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 dotenv.config();
 
 
 const app = express();
 app.use(cors({credentials: true, origin: 'http://localhost:5173'}));
 app.use(express.json());
+app.use(cookieParser());
 
 const salt = brcypt.genSaltSync(10);
 
@@ -65,5 +67,22 @@ app.post('/signin', async(req, res) => {
         res.status(400).json({message: 'Invalid credentials'});
     }
 });
+
+
+app.get('/profile', (req, res) => {
+    const { token } = req.cookies;
+    if (!token) {
+        return res.status(401).json({message: 'Unauthorized'});
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, info) => {
+        if (err) {
+            return res.status(403).json({message: 'Forbidden'});
+        }
+        res.json(info);
+        console.log("Profile", info);
+    });
+});
+
 
 app.listen(process.env.PORT || 3000);

@@ -155,7 +155,9 @@ app.post("/publish", async (req, res) => {
 // endpoint to get all the blogs from database
 app.get("/blogs", async (req, res) => {
   try {
-    const blogs = await Blog.find().populate("createdBy", "username");
+    const blogs = await Blog.find()
+      .populate("createdBy", "username")
+      .sort({ createdAt: -1 }); // Sort by createdAt in descending order
     res.json(blogs);
   } catch (err) {
     res.status(500).json({ error: err.message });

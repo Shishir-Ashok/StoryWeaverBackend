@@ -122,7 +122,7 @@ app.post("/publish", async (req, res) => {
 
     // console.log("title, description, editor, tags: ",title, description, parsedEditor, tags);
 
-    // Retreive user ID
+    // Retrieve user ID
     const { token } = req.cookies;
     const userID = jwt.verify(token, process.env.JWT_SECRET, (err, info) => {
       if (err) {

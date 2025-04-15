@@ -8,7 +8,6 @@ const bodyParser = require("body-parser");
 const User = require("./models/user");
 const Blog = require("./models/blog");
 const cookieParser = require("cookie-parser");
-// const { token } = require('morgan');
 
 dotenv.config();
 
@@ -159,6 +158,26 @@ app.get("/blogs", async (req, res) => {
       .populate("createdBy", "username")
       .sort({ createdAt: -1 }); // Sort by createdAt in descending order
     res.json(blogs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// endpoint to get a single blog by ID
+app.get("/blog/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const blog = await Blog.findByIdAndUpdate(
+      id,
+      { $inc: { views: 1 } },
+      { new: true }
+    )
+      .populate("createdBy", "username")
+      .populate("editedBy", "username");
+    if (!blog) {
+      return res.status(404).json({ message: "Blog not found" });
+    }
+    res.json(blog);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

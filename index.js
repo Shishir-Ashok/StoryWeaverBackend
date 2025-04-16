@@ -156,7 +156,7 @@ app.get("/blogs", async (req, res) => {
   try {
     const blogs = await Blog.find()
       .populate("createdBy", "username")
-      .sort({ createdAt: -1 }); // Sort by createdAt in descending order
+      .sort({ updatedAt: -1 }); // Sort by updatedAt in descending order
     res.json(blogs);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -170,7 +170,7 @@ app.get("/blog/:id", async (req, res) => {
     const blog = await Blog.findByIdAndUpdate(
       id,
       { $inc: { views: 1 } },
-      { new: true }
+      { new: true, timestamps: false } // Disable timestamps for this operation
     )
       .populate("createdBy", "username")
       .populate("editedBy", "username");
@@ -178,6 +178,81 @@ app.get("/blog/:id", async (req, res) => {
       return res.status(404).json({ message: "Blog not found" });
     }
     res.json(blog);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/edit/:id", async (req, res) => {
+  const { id } = req.params;
+  console.log("Edit ID:", id);
+  try {
+    const blog = await Blog.findByIdAndUpdate(
+      id,
+      { isEditing: true },
+      { new: true, timestamps: false } // Disable timestamps for this operation
+    );
+    if (!blog) {
+      return res.status(404).json({ message: "Blog not found" });
+    }
+    res.json(blog);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/publishEdit/:id", async (req, res) => {
+  const { id } = req.params;
+  const { title, description, tags, editor } = req.body;
+
+  console.log("Publish Edit ID:", id);
+  // Convert the content back to a JSON object
+  const parsedEditor = JSON.parse(editor);
+
+  // Retrieve user ID
+  const { token } = req.cookies;
+  const userID = jwt.verify(token, process.env.JWT_SECRET, (err, info) => {
+    if (err) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    return info.id;
+  });
+
+  try {
+    const updatedBlog = await Blog.findByIdAndUpdate(
+      id,
+      {
+        title,
+        description,
+        tags,
+        editor: parsedEditor,
+        editedBy: userID,
+        isEditing: false, // Set isEditing to false after editing
+      },
+      { new: true }
+    );
+
+    if (!updatedBlog) {
+      return res.status(404).json({ message: "Blog not found" });
+    }
+    res.json(updatedBlog);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/editCleanup/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const updateBlog = await Blog.findByIdAndUpdate(
+      id,
+      { isEditing: false },
+      { new: true, timestamps: false } // Disable timestamps for this operation
+    );
+    if (!updateBlog) {
+      return res.status(404).json({ message: "Blog not found" });
+    }
+    res.json(updateBlog);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

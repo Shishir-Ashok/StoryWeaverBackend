@@ -8,7 +8,7 @@ const bodyParser = require("body-parser");
 const User = require("./models/user");
 const Blog = require("./models/blog");
 const cookieParser = require("cookie-parser");
-
+const History = require("./models/history");
 dotenv.config();
 
 const app = express();
@@ -177,6 +177,23 @@ app.get("/blog/:id", async (req, res) => {
     if (!blog) {
       return res.status(404).json({ message: "Blog not found" });
     }
+
+    // Retrieve user ID
+    const { token } = req.cookies;
+    const userID = jwt.verify(token, process.env.JWT_SECRET, (err, info) => {
+      if (err) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      return info.id;
+    });
+
+    // Create history record for view
+    await History.create({
+      blog: id,
+      user: userID,
+      action: "view",
+    });
+
     res.json(blog);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -235,6 +252,14 @@ app.put("/publishEdit/:id", async (req, res) => {
     if (!updatedBlog) {
       return res.status(404).json({ message: "Blog not found" });
     }
+
+    // Create history record for edit
+    await History.create({
+      blog: id,
+      user: userID,
+      action: "edit",
+    });
+
     res.json(updatedBlog);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -253,6 +278,19 @@ app.post("/editCleanup/:id", async (req, res) => {
       return res.status(404).json({ message: "Blog not found" });
     }
     res.json(updateBlog);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/history/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const history = await History.find({ blog: id })
+      .populate("user", "username")
+      .populate("blog", "title")
+      .sort({ createdAt: -1 }); // Sort by createdAt in descending order
+    res.json(history);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
